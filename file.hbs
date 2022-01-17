@@ -1,0 +1,82 @@
+{{!-- main.hbs --}}
+<script src="/bundle.js"></script>
+
+<div id="container"></div>
+
+<script>
+
+    let movie_times, weather_data;
+    const container_div = document.querySelector('#container');   
+
+    const APP = new Container({
+        target: container_div,
+        props: {
+            data: {
+                weather_data: weather_data,
+                movie_times: movie_times
+            }
+        }
+    });
+
+    async function refreshData(type, url) {
+        const data = await fetch(url);
+        const res = await data.json();
+
+        APP.$set({
+            data: 
+            ...APP.data,
+            [type]: res
+        })
+    }
+
+    // window.updater sends events that the client can handle
+    window.updater.addEventListener('update', (e) => {
+        // server has a list of keys that were updated
+        let keys = Array.from(e.detail.updated_keys);
+
+        // check which keys were updated and filter them out
+        if (keys.some(key => key.includes('movie_times'))) {
+            keys = keys.filter(key => key.includes('movie_times'));
+            refreshData('movie_times', '/movie_times.json');
+        }
+
+        if (keys.some(key => key.includes('weather_data'))) {
+            keys = keys.filter(key => key.includes('weather_data'));
+            refreshData('weather_data', '/weather_data.json');
+        }
+    })
+</script>
+
+{{!-- Container.svelte --}}
+
+<script>
+    import MovieTimes from '/MovieTimes.svelte'
+    import WeatherWidget from '/WeatherWidget.svelte'
+    export let data;
+
+    $: movie_times = data.movie_times;
+    $: weather = data.weather_data;
+</script>
+
+<MovieTimes {movie_times} />
+<WeatherWidget {weather} />
+
+
+{{!-- MoviesTimes.svelte --}}
+
+<script>
+    export let movie_times;
+
+    $: movie_times;
+</script>
+
+
+{#each movie_times as movie (movie.id)}
+    <p>{movie.name}</p>
+    {#key movie.times}
+        <p>{movie.times}</p>
+    {/key}
+{/each}
+
+
+{{!-- WeatherWidget.svelte is the same thing, but replace the above 'movie_times' with 'weather', 'name' with 'location', and 'times' with 'temperature' --}}
